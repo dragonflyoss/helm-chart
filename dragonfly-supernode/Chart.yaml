@@ -1,0 +1,14 @@
+name: dragonfly-supernode
+version: 0.1.0
+apiVersion: v1
+appVersion: "0.3.0_dev"
+description: Dragonfly is an intelligent P2P based image and file distribution system.
+keywords:
+- supernode
+- dragonfly
+- p2p
+home: https://d7y.io/
+icon: https://github.com/dragonflyoss/Dragonfly/blob/master/docs/images/logo/dragonfly.svg
+sources:
+- https://github.com/dragonflyoss/Dragonfly
+engine: gotpl 
