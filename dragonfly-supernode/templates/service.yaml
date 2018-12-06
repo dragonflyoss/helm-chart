@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "dragonfly-supernode.fullname" . }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/name: {{ include "dragonfly-supernode.name" . }}
+    helm.sh/chart: {{ include "dragonfly-supernode.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  type: {{ .Values.service.type }}
+{{- if (and (eq .Values.service.type "ClusterIP") (not (empty .Values.service.clusterIP))) }}
+  clusterIP: {{ .Values.service.clusterIP }}
+{{- end }}
+  ports:
+    - port: {{ .Values.service.server.port }}
+      targetPort: {{ .Values.service.server.targetPort }}
+      protocol: TCP
+      name: {{ .Values.service.server.name }}
+{{- if (and (eq .Values.service.type "NodePort") (not (empty .Values.service.server.nodePort))) }}
+      nodePort: {{ .Values.server.nodePort }}
+{{- end }}
+    - port: {{ .Values.service.peer.port }}
+      targetPort: {{ .Values.service.peer.targetPort }}
+      protocol: TCP
+      name: {{ .Values.service.peer.name }}
+{{- if (and (eq .Values.service.type "NodePort") (not (empty .Values.service.peer.nodePort))) }}
+      nodePort: {{ .Values.service.peer.nodePort }}
+{{- end }}
+  selector:
+    app.kubernetes.io/name: {{ include "dragonfly-supernode.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
