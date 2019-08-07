@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    {{- include "dfclient.labels" . | nindent 4 }}
+  name: {{ template "dfclient.fullname" . }}
+data:
+  dfdaemon.yml: |
+    {{- if .Values.dfclient.globalDfgetFlags }}
+    dfget_flags: 
+      {{- toYaml .Values.dfclient.globalDfgetFlags | nindent 6 }}
+    {{- end }} 
+    {{- if .Values.dfclient.proxies }}
+    proxies: 
+      {{- toYaml .Values.dfclient.proxies | nindent 6 }}
+    {{- end }}
+    node:
+    {{- if not .Values.supernode.statefulSet.enabled }}
+      - {{ template "supernode.fullname" . }}:8002
+    {{- else }}
+      {{- $root := . -}}
+      {{- range until (.Values.supernode.replicaCount | int ) }}
+      - {{ template "supernode.fullname" $root }}-{{.}}.{{ template "supernode.fullname" $root }}-headless:8002
+      {{- end }}
+    {{- end }}
+    {{- if .Values.dfclient.registryMirror }}
+    registry_mirror: 
+      {{- toYaml .Values.dfclient.registryMirror | nindent 6 }}
+    {{- end }}
+    {{- if .Values.dfclient.hijackHTTPS }}
+    hijack_https: 
+      {{- toYaml .Values.dfclient.hijackHTTPS | nindent 6 }}
+    {{- end }}

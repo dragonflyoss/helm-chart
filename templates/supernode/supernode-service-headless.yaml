@@ -1,0 +1,29 @@
+{{- if .Values.supernode.statefulSet.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "supernode.fullname" . }}-headless
+  namespace: {{ .Release.Namespace }}
+{{- if .Values.supernode.statefulSet.headless.annotations }}
+  annotations:
+{{ toYaml .Values.supernode.statefulSet.headless.annotations | indent 4 }}
+{{- end }}
+  labels:
+    {{- include "supernode.labels" . | nindent 4 }}
+{{- if .Values.supernode.statefulSet.headless.labels }}
+{{ toYaml .Values.supernode.statefulSet.headless.labels | indent 4 }}
+{{- end }}
+spec:
+  clusterIP: None
+  ports:
+    - name: http
+      port: 8002
+      protocol: TCP
+      targetPort: 8002
+    - name: nginx
+      port: 8001
+      protocol: TCP
+      targetPort: 8001
+  selector:
+    {{- include "supernode.matchLabels" . | nindent 4 }}
+{{- end -}}

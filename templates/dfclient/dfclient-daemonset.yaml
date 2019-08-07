@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ template "dfclient.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "dfclient.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "dfclient.matchLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "dfclient.labels" . | nindent 8 }}
+    {{- if .Values.dfclient.podAnnotations }}
+      annotations:
+        {{ toYaml .Values.dfclient.podAnnotations | indent 8 }}
+    {{- end }}
+    spec:
+      serviceAccountName: {{ template "dfclient.serviceAccountName" . }}
+    {{- if .Values.dfclient.hostNetwork }}
+      hostNetwork: true
+    {{- end }}
+    {{- if .Values.dfclient.dnsPolicy}}
+      dnsPolicy: {{ .Values.dfclient.dnsPolicy }}
+    {{- end }}    
+    {{- if .Values.dfclient.priorityClassName }}
+      priorityClassName: {{ .Values.dfclient.priorityClassName }}
+    {{- end }}
+      containers:
+        - name: dfclient
+          image: "{{ .Values.dfclient.image.repository }}:{{ .Values.dfclient.image.tag }}"
+          imagePullPolicy: {{ .Values.dfclient.image.pullPolicy }}
+          args:
+        {{- if .Values.dfclient.args }}
+          {{ toYaml .Values.dfclient.args | indent 8 }}
+        {{- end }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/dragonfly
+          {{- range .Values.dfclient.extraHostPathMounts }}
+            - name: {{ .name }}
+              mountPath: {{ .mountPath }}
+              readOnly: {{ .readOnly }}
+          {{- end }}
+          {{- range .Values.dfclient.extraSecretMounts }}
+            - name: {{ .name }}
+              mountPath: {{ .mountPath }}
+              subPath: {{ .subPath }}
+              readOnly: {{ .readOnly }}
+          {{- end }}    
+          env:
+          - name: HOSTNAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+          ports:
+            - containerPort: 65001
+              name: http
+        {{- if .Values.dfclient.securityContext }}      
+          securityContext:
+            {{- toYaml .Values.dfclient.securityContext | nindent 12 }}
+        {{- end }}    
+          resources:
+            {{- toYaml .Values.dfclient.resources | nindent 12 }}
+    {{- if .Values.dfclient.nodeSelector }}
+      nodeSelector:
+        {{- toYaml .Values.dfclient.nodeSelector | nindent 8 }}
+    {{- end }}
+    {{- if .Values.dfclient.affinity }}    
+      affinity:
+        {{- toYaml .Values.dfclient.affinity | nindent 8 }}
+    {{- end }}
+    {{- if .Values.dfclient.tolerations }}  
+      tolerations:
+        {{- toYaml .Values.dfclient.tolerations | nindent 8 }}
+    {{- end }}         
+      volumes:
+        - name: config
+          configMap:
+            name: {{ template "dfclient.fullname" . }}
+      {{- range .Values.dfclient.extraHostPathMounts }}
+        - name: {{ .name }}
+          hostPath:
+            path: {{ .hostPath }}
+      {{- end }}
+      {{- range .Values.dfclient.extraSecretMounts }}
+        - name: {{ .name }}
+          secret:
+            secretName: {{ .secretName }}
+      {{- end }}

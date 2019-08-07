@@ -1,0 +1,31 @@
+{{- if and .Values.supernode.enabled .Values.supernode.ingress.enabled -}}
+{{- $releaseName := .Release.Name -}}
+{{- $serviceName := include "prometheus.supernode.fullname" . }}
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: {{ template "supernode.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+{{- if .Values.supernode.ingress.annotations }}
+  annotations:
+{{ toYaml .Values.supernode.ingress.annotations | indent 4}}
+{{- end }}
+  labels:
+    {{- include "supernode.labels" . | nindent 4 }}
+spec:
+  rules:
+  {{- range .Values.supernode.ingress.hosts }}
+    {{- $url := splitList "/" . }}
+    - host: {{ first $url }}
+      http:
+        paths:
+          - path: /{{ rest $url | join "/" }}
+            backend:
+              serviceName: {{ $serviceName }}
+              servicePort: 8002
+  {{- end -}}
+{{- if .Values.supernode.ingress.tls }}
+  tls:
+{{ toYaml .Values.supernode.ingress.tls | indent 4 }}
+  {{- end -}}
+{{- end -}}
