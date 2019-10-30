@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "supernode.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "supernode.labels" . | nindent 4 }}
+  {{- if .Values.supernode.service.labels }}
+    {{ toYaml .Values.supernode.service.labels | indent 4 }}
+  {{- end }}
+{{- if .Values.supernode.service.annotations }}
+  annotations:
+    {{- toYaml .Values.supernode.service.annotations | nindent 4 }}
+{{- end }}    
+spec:
+  type: {{ .Values.supernode.service.type }}
+{{- if (eq .Values.supernode.service.type "ClusterIP") }}
+  clusterIP: {{ .Values.supernode.service.clusterIP }}
+{{- end }}
+  ports:
+    - port: 8002
+      protocol: TCP
+      name: http
+      targetPort: http
+    {{- if .Values.supernode.service.nodePortHTTP }}
+      nodePort: {{ .Values.supernode.service.nodePortHTTP }}
+    {{- end }}  
+    - port: 8001
+      protocol: TCP
+      name: nginx
+      targetPort: nginx  
+    {{- if .Values.supernode.service.nodePortNginx }}
+      nodePort: {{ .Values.supernode.service.nodePortNginx }}
+    {{- end }}  
+  selector:
+    {{- include "supernode.matchLabels" . | nindent 4 }}

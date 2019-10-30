@@ -1,0 +1,29 @@
+{{- if .Values.supernode.persistence.enabled -}}
+{{- if not .Values.supernode.statefulSet.enabled -}}
+{{- if not .Values.supernode.persistence.existingClaim -}}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  {{- if .Values.supernode.persistence.annotations }}
+  annotations:
+{{ toYaml .Values.supernode.persistence.annotations | indent 4 }}
+  {{- end }}
+  labels:
+    {{- include "supernode.labels" . | nindent 4 }}
+  name: {{ template "supernode.fullname" . }}
+spec:
+  accessModes:
+{{ toYaml .Values.supernode.persistence.accessModes | indent 4 }}
+{{- if .Values.supernode.persistence.storageClass }}
+{{- if (eq "-" .Values.supernode.persistence.storageClass) }}
+  storageClassName: ""
+{{- else }}
+  storageClassName: "{{ .Values.supernode.persistence.storageClass }}"
+{{- end }}
+{{- end }}
+  resources:
+    requests:
+      storage: "{{ .Values.supernode.persistence.size }}"
+{{- end -}}
+{{- end -}}
+{{- end -}}

@@ -1,0 +1,116 @@
+{{- if .Values.supernode.statefulSet.enabled -}}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+{{- if .Values.supernode.statefulSet.annotations }}
+  annotations:
+{{ toYaml .Values.supernode.statefulSet.annotations | indent 4 }}
+{{- end }}
+  labels:
+    {{- include "supernode.labels" . | nindent 4 }}
+    {{- if .Values.supernode.statefulSet.labels}}
+    {{ toYaml .Values.supernode.statefulSet.labels | nindent 4 }}
+    {{- end}}
+  name: {{ template "supernode.fullname" . }}
+spec:
+  serviceName: {{ template "supernode.fullname" . }}-headless
+  selector:
+    matchLabels:
+      {{- include "supernode.matchLabels" . | nindent 6 }}
+  replicas: {{ .Values.supernode.replicaCount }}
+  podManagementPolicy: {{ .Values.supernode.statefulSet.podManagementPolicy }}
+  template:
+    metadata:
+    {{- if .Values.supernode.podAnnotations }}
+      annotations:
+{{ toYaml .Values.supernode.podAnnotations | indent 8 }}
+    {{- end }}
+      labels:
+        {{- include "supernode.labels" . | nindent 8 }}
+        {{- if .Values.supernode.statefulSet.labels}}
+        {{ toYaml .Values.supernode.statefulSet.labels | nindent 8 }}
+        {{- end}}
+    spec:
+      serviceAccountName: {{ template "supernode.serviceAccountName" . }}
+    {{- if .Values.supernode.priorityClassName }}
+      priorityClassName: {{ .Values.supernode.priorityClassName }}
+    {{- end }}
+      containers:
+        - name: supernode
+          image: "{{ .Values.supernode.image.repository }}:{{ .Values.supernode.image.tag }}"
+          imagePullPolicy: "{{ .Values.supernode.image.pullPolicy }}"
+          args:
+          - --home-dir
+          - /home/admin/supernode
+        {{- if .Values.supernode.extraArgs }}
+          {{ toYaml .Values.supernode.extraArgs | indent 8 }}
+        {{- end }}
+          volumeMounts:
+            - name: supernode
+              mountPath: /home/admin/supernode
+          {{- range .Values.supernode.extraSecretMounts }}
+            - name: {{ .name }}
+              mountPath: {{ .mountPath }}
+              subPath: {{ .subPath }}
+              readOnly: {{ .readOnly }}
+          {{- end }}    
+          ports:
+            - containerPort: 8002
+              name: http
+            - containerPort: 8001
+              name: nginx
+        {{- if .Values.supernode.securityContext }}      
+          securityContext:
+            {{- toYaml .Values.supernode.securityContext | nindent 12 }}
+        {{- end }}    
+          resources:
+            {{- toYaml .Values.supernode.resources | nindent 12 }}
+    {{- if .Values.supernode.nodeSelector }}
+      nodeSelector:
+        {{- toYaml .Values.supernode.nodeSelector | nindent 8 }}
+    {{- end }}
+    {{- if .Values.supernode.affinity }}    
+      affinity:
+        {{- toYaml .Values.supernode.affinity | nindent 8 }}
+    {{- end }}
+    {{- if .Values.supernode.tolerations }}  
+      tolerations:
+        {{- toYaml .Values.supernode.tolerations | nindent 8 }}
+    {{- end }}
+      volumes:
+      {{- range .Values.supernode.extraSecretMounts }}
+        - name: {{ .name }}
+          secret:
+            secretName: {{ .secretName }}
+      {{- end }}
+{{- if .Values.supernode.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: supernode
+        {{- if .Values.supernode.persistence.annotations }}
+        annotations:
+{{ toYaml .Values.supernode.persistence.annotations | indent 10 }}
+        {{- end }}
+      spec:
+        accessModes:
+{{ toYaml .Values.supernode.persistence.accessModes | indent 10 }}
+        resources:
+          requests:
+            storage: "{{ .Values.supernode.persistence.size }}"
+      {{- if .Values.supernode.persistence.storageClass }}
+      {{- if (eq "-" .Values.supernode.persistence.storageClass) }}
+        storageClassName: ""
+      {{- else }}
+        storageClassName: "{{ .Values.supernode.persistence.storageClass }}"
+      {{- end }}
+      {{- end }}
+{{- else }}
+        - name: supernode
+          emptyDir:
+          {{- if .Values.supernode.emptyDir.sizeLimit }}
+            sizeLimit: {{ .Values.supernode.emptyDir.sizeLimit }}
+          {{- else }}
+            {}
+          {{- end }}  
+{{- end }}
+{{- end }}

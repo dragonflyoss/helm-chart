@@ -1,0 +1,246 @@
+rbac:
+  create: true
+
+## Define serviceAccount names for components. Defaults to component's fully qualified name.
+##
+serviceAccounts:
+  dfclient:
+    create: true
+    name:
+  supernode:
+    create: true
+    name:
+
+dfclient:
+  name: dfclient
+  ## dfclient container image
+  ##
+  image:
+    repository: dragonflyoss/dfclient
+    tag: 0.4.3
+    pullPolicy: IfNotPresent
+
+  ## dfclient priorityClassName
+  ##
+  priorityClassName: ""
+
+  ## dfclient container arguments
+  ##
+  args: []
+
+  ## Node tolerations for dfclient scheduling to nodes with taints
+  ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
+  ##
+  tolerations: 
+    - key: "node-role.kubernetes.io/master"
+      operator: "Exists"
+      effect: "NoSchedule"
+
+  ## Node labels for dfclient pod assignment
+  ## Ref: https://kubernetes.io/docs/user-guide/node-selection/
+  ##
+  nodeSelector: {}
+
+  ## Pod affinity
+  ##
+  affinity: {}
+
+  ## Annotations to be added to dfclient pods
+  ##
+  podAnnotations: {}
+
+  ## Labels to be added to dfclient pods
+  ##
+  podLabels: {}
+
+  ## dfclient resource requests and limits
+  ## Ref: http://kubernetes.io/docs/user-guide/compute-resources/
+  ##
+  resources: {}
+    # limits:
+    #   cpu: 500m
+    #   memory: 512Mi
+    # requests:
+    #   cpu: 500m
+    #   memory: 512Mi
+
+  ## Security context to be added to dfclient pods
+  ##
+  securityContext: {}
+
+  ## If true, dfclient pods share the host network namespace
+  ##
+  hostNetwork: true
+
+  dnsPolicy: ClusterFirstWithHostNet
+
+  ## Additional dfclient hostPath mounts
+  ##
+  extraHostPathMounts: []
+    # - name: logs
+    #   mountPath: /root/.small-dragonfly/logs
+    #   hostPath: /var/dragonfly/logs
+    #   readOnly: true
+
+  ## Additional dfclient Secret mounts
+  ## Defines additional mounts with secrets. Secrets must be manually created in the namespace.
+  extraSecretMounts: []
+    # - name: secret-files
+    #   mountPath: /etc/secrets
+    #   subPath: ""
+    #   secretName: dfclient-secret-files
+    #   readOnly: true
+
+supernode:
+  name: supernode
+  ## supernode container image
+  ##
+  image:
+    repository: dragonflyoss/supernode
+    tag: 0.4.3
+    pullPolicy: IfNotPresent
+  
+  ## supernode priorityClassName
+  ##
+  priorityClassName: ""
+
+  ## Additional supernode container arguments
+  ##
+  extraArgs: []
+
+  ## Supernode Deployment Strategy type
+  # strategy:
+  #   type: Recreate
+
+  ingress:
+    ## If true, supernode Ingress will be created
+    ##
+    enabled: false
+
+    ## supernode Ingress annotations
+    ##
+    annotations: {}
+    #   kubernetes.io/ingress.class: nginx
+    #   kubernetes.io/tls-acme: 'true'
+
+    ## supernode Ingress additional labels
+    ##
+    extraLabels: {}
+
+    ## supernode Ingress hostnames with optional path
+    ## Must be provided if Ingress is enabled
+    ##
+    hosts: []
+    #   - supernode.domain.com
+    #   - domain.com/supernode
+
+    ## supernode Ingress TLS configuration
+    ## Secrets must be manually created in the namespace
+    ##
+    tls: []
+    #   - secretName: supernode-tls
+    #     hosts:
+    #       - supernode.domain.com
+
+  ## Node tolerations for supernode scheduling to nodes with taints
+  ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
+  ##
+  tolerations: []
+
+  ## Node labels for supernode pod assignment
+  ## Ref: https://kubernetes.io/docs/user-guide/node-selection/
+  ##
+  nodeSelector: {}
+
+  ## Pod affinity
+  ##
+  affinity: {}
+
+  persistence:
+    enabled: false
+    accessModes:
+      - ReadWriteOnce
+    annotations: {}
+    ## supernode data Persistent Volume Storage Class
+    ## If defined, storageClassName: <storageClass>
+    ## If set to "-", storageClassName: "", which disables dynamic provisioning
+    ## If undefined (the default) or set to null, no storageClassName spec is
+    ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
+    ##   GKE, AWS & OpenStack)
+    ##
+    # storageClass: "-"
+
+    ## supernode data Persistent Volume existing claim name
+    ## Requires supernode.persistentVolume.enabled: true
+    ## If defined, PVC must be created manually before volume will be bound
+    existingClaim: ""
+
+    ## supernode data Persistent Volume mount root path
+    ##
+    mountPath: /home/admin/supernode
+    size: 1Gi
+
+  emptyDir:
+    sizeLimit: 1Gi
+
+  ## Annotations to be added to supernode pods
+  ##
+  podAnnotations: {}
+
+  ## Labels to be added to supernode pods
+  ##
+  podLabels: {}
+
+  ## Use a StatefulSet if replicaCount needs to be greater than 1 (see below)
+  ##
+  replicaCount: 1
+
+  statefulSet:
+    ## If true, use a statefulset instead of a deployment for pod management.
+    ## This allows to scale replicas to more than 1 pod
+    ##
+    enabled: false
+    annotations: {}
+    labels: {}
+    podManagementPolicy: OrderedReady
+
+    ## Supernode headless service to use for the statefulset
+    ##
+    headless:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8002" 
+      labels: {}
+
+  ## supernode resource requests and limits
+  ## Ref: http://kubernetes.io/docs/user-guide/compute-resources/
+  ##
+  resources: {}
+    # limits:
+    #   cpu: 500m
+    #   memory: 512Mi
+    # requests:
+    #   cpu: 500m
+    #   memory: 512Mi
+
+  ## Security context to be added to supernode pods
+  ##
+  securityContext: {}
+
+  service:
+    annotations:
+      prometheus.io/scrape: "true"
+      prometheus.io/port: "8002"
+    labels: {}
+    # nodePortHTTP: 30000
+    # nodePortNginx: 30001
+    type: ClusterIP  
+
+  ## Additional supernode Secret mounts
+  ## Defines additional mounts with secrets. Secrets must be manually created in the namespace.
+  extraSecretMounts: []
+    # - name: secret-files
+    #   mountPath: /etc/secrets
+    #   subPath: ""
+    #   secretName: supernode-secret-files
+    #   readOnly: true  

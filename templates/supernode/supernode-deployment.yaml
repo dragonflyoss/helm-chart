@@ -1,0 +1,91 @@
+{{- if not .Values.supernode.statefulSet.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "supernode.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "supernode.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "supernode.matchLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "supernode.labels" . | nindent 8 }}
+    {{- if .Values.supernode.podAnnotations }}
+      annotations:
+        {{ toYaml .Values.supernode.podAnnotations | indent 8 }}
+    {{- end }}       
+    spec:
+      serviceAccountName: {{ template "supernode.serviceAccountName" . }}
+    {{- if .Values.supernode.priorityClassName }}
+      priorityClassName: {{ .Values.supernode.priorityClassName }}
+    {{- end }}
+      containers:
+        - name: supernode
+          image: {{ .Values.supernode.image.repository }}:{{ .Values.supernode.image.tag }}
+          imagePullPolicy: {{ .Values.supernode.image.pullPolicy }}
+          args:
+          - --home-dir
+          - /home/admin/supernode
+        {{- if .Values.supernode.extraArgs }}
+          {{ toYaml .Values.supernode.extraArgs | indent 8 }}
+        {{- end }}    
+          volumeMounts:
+            - name: supernode
+              mountPath: /home/admin/supernode
+          {{- range .Values.supernode.extraSecretMounts }}
+            - name: {{ .name }}
+              mountPath: {{ .mountPath }}
+              subPath: {{ .subPath }}
+              readOnly: {{ .readOnly }}
+          {{- end }}    
+          env:
+          - name: HOSTNAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+          ports:
+            - containerPort: 8002
+              name: http
+            - containerPort: 8001
+              name: nginx
+        {{- if .Values.supernode.securityContext }}      
+          securityContext:
+            {{- toYaml .Values.supernode.securityContext | nindent 12 }}
+        {{- end }}    
+          resources:
+            {{- toYaml .Values.supernode.resources | nindent 12 }}
+    {{- if .Values.supernode.nodeSelector }}
+      nodeSelector:
+        {{- toYaml .Values.supernode.nodeSelector | nindent 8 }}
+    {{- end }}
+    {{- if .Values.supernode.affinity }}    
+      affinity:
+        {{- toYaml .Values.supernode.affinity | nindent 8 }}
+    {{- end }}
+    {{- if .Values.supernode.tolerations }}  
+      tolerations:
+        {{- toYaml .Values.supernode.tolerations | nindent 8 }}
+    {{- end }}  
+      volumes:
+        - name: supernode    
+        {{- if .Values.supernode.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ if .Values.supernode.persistence.existingClaim }}{{ .Values.supernode.persistence.existingClaim }}{{- else }}{{ template "supernode.fullname" . }}{{- end }}
+        {{- else }}
+          emptyDir:
+          {{- if .Values.supernode.emptyDir.sizeLimit }}
+            sizeLimit: {{ .Values.supernode.emptyDir.sizeLimit }}
+          {{- else }}
+            {}
+          {{- end -}}
+        {{- end -}}
+      {{- range .Values.supernode.extraSecretMounts }}
+        - name: {{ .name }}
+          secret:
+            secretName: {{ .secretName }}
+      {{- end }}
+{{- end -}}
