@@ -32,12 +32,12 @@ spec:
         - name: dfclient
           image: "{{ .Values.dfclient.image.repository }}:{{ .Values.dfclient.image.tag }}"
           imagePullPolicy: {{ .Values.dfclient.image.pullPolicy }}
-          args:
         {{- if .Values.dfclient.args }}
+          args:
           {{ toYaml .Values.dfclient.args | indent 8 }}
         {{- end }}
           volumeMounts:
-            - name: config
+            - name: dfclient-config
               mountPath: /etc/dragonfly
           {{- range .Values.dfclient.extraHostPathMounts }}
             - name: {{ .name }}
@@ -61,9 +61,11 @@ spec:
         {{- if .Values.dfclient.securityContext }}      
           securityContext:
             {{- toYaml .Values.dfclient.securityContext | nindent 12 }}
-        {{- end }}    
+        {{- end }}
+        {{- if .Values.dfclient.resources }}
           resources:
             {{- toYaml .Values.dfclient.resources | nindent 12 }}
+        {{- end }}
     {{- if .Values.dfclient.nodeSelector }}
       nodeSelector:
         {{- toYaml .Values.dfclient.nodeSelector | nindent 8 }}
@@ -77,7 +79,7 @@ spec:
         {{- toYaml .Values.dfclient.tolerations | nindent 8 }}
     {{- end }}         
       volumes:
-        - name: config
+        - name: dfclient-config
           configMap:
             name: {{ template "dfclient.fullname" . }}
       {{- range .Values.dfclient.extraHostPathMounts }}
