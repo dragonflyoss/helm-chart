@@ -34,7 +34,9 @@ spec:
           {{ toYaml .Values.supernode.extraArgs | indent 8 }}
         {{- end }}    
           volumeMounts:
-            - name: supernode
+            - name: supernode-config
+              mountPath: /etc/dragonfly
+            - name: supernode-home
               mountPath: /home/admin/supernode
           {{- range .Values.supernode.extraSecretMounts }}
             - name: {{ .name }}
@@ -55,9 +57,15 @@ spec:
         {{- if .Values.supernode.securityContext }}      
           securityContext:
             {{- toYaml .Values.supernode.securityContext | nindent 12 }}
-        {{- end }}    
+        {{- end }}
+        {{- if .Values.supernode.resources }}
           resources:
             {{- toYaml .Values.supernode.resources | nindent 12 }}
+        {{- end }}
+    {{- if .Values.supernode.hostAliases }}
+      hostAliases:
+        {{- toYaml .Values.supernode.hostAliases | nindent 8 }}
+    {{- end }}
     {{- if .Values.supernode.nodeSelector }}
       nodeSelector:
         {{- toYaml .Values.supernode.nodeSelector | nindent 8 }}
@@ -71,14 +79,17 @@ spec:
         {{- toYaml .Values.supernode.tolerations | nindent 8 }}
     {{- end }}  
       volumes:
-        - name: supernode    
+        - name: supernode-config
+          configMap:
+            name: {{ template "supernode.fullname" . }}
+        - name: supernode-home
         {{- if .Values.supernode.persistence.enabled }}
           persistentVolumeClaim:
             claimName: {{ if .Values.supernode.persistence.existingClaim }}{{ .Values.supernode.persistence.existingClaim }}{{- else }}{{ template "supernode.fullname" . }}{{- end }}
         {{- else }}
           emptyDir:
-          {{- if .Values.supernode.emptyDir.sizeLimit }}
-            sizeLimit: {{ .Values.supernode.emptyDir.sizeLimit }}
+          {{- if .Values.supernode.emptyDir }}
+            {{- toYaml .Values.supernode.emptyDir | nindent 12 }}
           {{- else }}
             {}
           {{- end -}}

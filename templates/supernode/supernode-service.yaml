@@ -21,16 +21,20 @@ spec:
     - port: 8002
       protocol: TCP
       name: http
-      targetPort: http
-    {{- if .Values.supernode.service.nodePortHTTP }}
-      nodePort: {{ .Values.supernode.service.nodePortHTTP }}
+    {{- if .Values.supernode.service.ports.targetPortHTTP }}
+      targetPort: {{ .Values.supernode.service.ports.targetPortHTTP }}
+    {{- end }}
+    {{- if .Values.supernode.service.ports.nodePortHTTP }}
+      nodePort: {{ .Values.supernode.service.ports.nodePortHTTP }}
     {{- end }}  
     - port: 8001
       protocol: TCP
       name: nginx
-      targetPort: nginx  
-    {{- if .Values.supernode.service.nodePortNginx }}
-      nodePort: {{ .Values.supernode.service.nodePortNginx }}
+    {{- if .Values.supernode.service.ports.targetPortNginx }}
+      targetPort: {{ .Values.supernode.service.ports.targetPortNginx }}
+    {{- end }}
+    {{- if .Values.supernode.service.ports.nodePortNginx }}
+      nodePort: {{ .Values.supernode.service.ports.nodePortNginx }}
     {{- end }}  
   selector:
     {{- include "supernode.matchLabels" . | nindent 4 }}

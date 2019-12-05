@@ -17,7 +17,7 @@ dfclient:
   ##
   image:
     repository: dragonflyoss/dfclient
-    tag: 0.4.3
+    tag: 1.0.0
     pullPolicy: IfNotPresent
 
   ## dfclient priorityClassName
@@ -29,7 +29,7 @@ dfclient:
   args: []
 
   ## Node tolerations for dfclient scheduling to nodes with taints
-  ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
+  ## Ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
   ##
   tolerations: 
     - key: "node-role.kubernetes.io/master"
@@ -37,7 +37,7 @@ dfclient:
       effect: "NoSchedule"
 
   ## Node labels for dfclient pod assignment
-  ## Ref: https://kubernetes.io/docs/user-guide/node-selection/
+  ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
   ##
   nodeSelector: {}
 
@@ -76,10 +76,17 @@ dfclient:
 
   ## Additional dfclient hostPath mounts
   ##
-  extraHostPathMounts: []
+  extraHostPathMounts:
     # - name: logs
     #   mountPath: /root/.small-dragonfly/logs
     #   hostPath: /var/dragonfly/logs
+    # - name: df.key
+    #   mountPath: /etc/dragonfly/df.key
+    #   hostPath: df.key
+    #   readOnly: true
+    # - name: df.crt
+    #   mountPath: /etc/dragonfly/df.crt
+    #   hostPath: df.crt
     #   readOnly: true
 
   ## Additional dfclient Secret mounts
@@ -91,13 +98,27 @@ dfclient:
     #   secretName: dfclient-secret-files
     #   readOnly: true
 
+  ## dfdaemon config data
+  ## Ref: https://github.com/dragonflyoss/Dragonfly/tree/master/docs/config
+  ##
+  configData:
+    dfget_flags: ["--verbose","-f","Expires&OSSAccessKeyId&Signature"]
+    verbose: false
+    proxies:
+      - regx: blobs/sha256.*
+    # hijack_https:
+    #   cert: /etc/dragonfly/df.crt
+    #   key: /etc/dragonfly/df.key
+    #   hosts:
+    #     - regx: index.docker.io
+
 supernode:
   name: supernode
   ## supernode container image
   ##
   image:
     repository: dragonflyoss/supernode
-    tag: 0.4.3
+    tag: 1.0.0
     pullPolicy: IfNotPresent
   
   ## supernode priorityClassName
@@ -142,6 +163,16 @@ supernode:
     #     hosts:
     #       - supernode.domain.com
 
+  hostAliases: {}
+    # - ip: "127.0.0.1"
+    #   hostnames:
+    #     - "foo.local"
+    #     - "bar.local"
+    # - ip: "10.1.2.3"
+    #   hostnames:
+    #     - "foo.remote"
+    #     - "bar.remote"
+
   ## Node tolerations for supernode scheduling to nodes with taints
   ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
   ##
@@ -178,10 +209,11 @@ supernode:
     ## supernode data Persistent Volume mount root path
     ##
     mountPath: /home/admin/supernode
-    size: 1Gi
+    size: 100Gi
 
   emptyDir:
-    sizeLimit: 1Gi
+    # medium: "Memory"
+    sizeLimit: 10Gi
 
   ## Annotations to be added to supernode pods
   ##
@@ -232,8 +264,11 @@ supernode:
       prometheus.io/scrape: "true"
       prometheus.io/port: "8002"
     labels: {}
-    # nodePortHTTP: 30000
-    # nodePortNginx: 30001
+    ports:
+      targetPortHTTP: 8002
+      targetPortNginx: 8001
+      # nodePortHTTP: 30000
+      # nodePortNginx: 30001
     type: ClusterIP  
 
   ## Additional supernode Secret mounts
@@ -243,4 +278,37 @@ supernode:
     #   mountPath: /etc/secrets
     #   subPath: ""
     #   secretName: supernode-secret-files
-    #   readOnly: true  
+    #   readOnly: true
+
+  # supernode config data
+  # Ref: https://github.com/dragonflyoss/Dragonfly/tree/master/docs/config
+  #
+  configData:
+    base:
+      listenPort: 8002
+      downloadPort: 8001
+      homeDir: /home/admin/supernode
+      schedulerCorePoolSize: 10
+      peerUpLimit: 5
+      peerDownLimit: 4
+      eliminationLimit: 5
+      failureCountLimit: 5
+      systemReservedBandwidth: 20M
+      maxBandwidth: 200M
+      enableProfiler: false
+      debug: false
+      failAccessInterval: 3m
+      gcInitialDelay: 6s
+      gcMetaInterval: 2m
+      taskExpireTime: 3m
+      peerGCDelay: 3m
+      gcDiskInterval: 15s
+      youngGCThreshold: 100G
+      fullGCThreshold: 5G
+      IntervalThreshold: 2h
+    plugins:
+      storage:
+        - name: local
+          enabled: true
+          config: |
+            baseDir: /home/admin/supernode/repo

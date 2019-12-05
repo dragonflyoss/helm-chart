@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    {{- include "supernode.labels" . | nindent 4 }}
+  name: {{ template "supernode.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+data:
+  supernode.yml: |
+    {{- toYaml .Values.supernode.configData | nindent 4}}
+
